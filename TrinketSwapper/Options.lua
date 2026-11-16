@@ -14,7 +14,7 @@ end
 
 local function Build()
     local db = ns.db
-    window = K.Window("TrinketSwapperOptions", "TrinketSwapper", 430, 356)
+    window = K.Window("TrinketSwapperOptions", "TrinketSwapper", 430, 380)
     local x, y = 16, -42
     y = K.Para(window, "Put the mouse on a trinket icon to see the trinkets in your bags. Left-click one to wear it as your top trinket, right-click as your bottom trinket. In combat it's queued and goes on when the fight ends. Click an icon to use that trinket.", x, y, 396)
     K.Stepper(window, "Icon size", x, y,
@@ -39,6 +39,11 @@ local function Build()
     K.Check(window, "Show each trinket's key on its icon", x, y,
         function() return db.keys ~= false end,
         function(checked) db.keys = checked Apply() end)
+    y = y - 24
+    K.Check(window, "Show the minimap button", x, y,
+        function() return db.minimap.hide ~= true end,
+        function(checked) db.minimap.hide = not checked ns.ApplyMinimapButton() end,
+        "Off: /ts still opens these settings, and /ts minimap brings the button back.")
     y = y - 30
     y = K.Para(window, "Keys for using each trinket are set in the game's Key Bindings, under TrinketSwapper.", x, y, 396)
     y = y - 4

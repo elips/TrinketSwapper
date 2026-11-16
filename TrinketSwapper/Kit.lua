@@ -168,6 +168,96 @@ function K.DragBox(frame, label, saved)
 end
 
 ------------------------------------------------------------------------------
+-- A minimap button
+------------------------------------------------------------------------------
+
+local function Angle(dy, dx)
+    if math.atan2 then
+        return math.atan2(dy, dx)
+    end
+    return math.atan(dy, dx)
+end
+
+-- A round button on the minimap's edge showing `texture` (a picture that is
+-- already round). Drag it around the minimap. `settings` is a saved table:
+-- .angle is where it sits (degrees), .hide puts it away. `onClick(mouse)`
+-- is told "LeftButton" or "RightButton"; `lines` are the tooltip's.
+-- Returns the button (nil where there's no minimap); button:Apply() after
+-- changing a setting.
+function K.MinimapButton(name, texture, settings, onClick, lines)
+    local minimap = rawget(_G, "Minimap")
+    if not minimap then
+        return nil
+    end
+    local button = CreateFrame("Button", name, minimap)
+    button:SetSize(32, 32)
+    button:SetFrameStrata("MEDIUM")
+    button:SetFrameLevel(8)
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture(texture)
+    icon:SetAllPoints()
+    button.icon = icon
+    local highlight = button:CreateTexture(nil, "HIGHLIGHT")
+    highlight:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+    highlight:SetBlendMode("ADD")
+    highlight:SetPoint("TOPLEFT", -2, 2)
+    highlight:SetPoint("BOTTOMRIGHT", 2, -2)
+    local function Place()
+        local angle = math.rad(tonumber(settings.angle) or 205)
+        local radius = (K.Num(minimap:GetWidth()) or 140) / 2 + 6
+        button:ClearAllPoints()
+        button:SetPoint("CENTER", minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
+    end
+    function button:Apply()
+        self:SetShown(settings.hide ~= true)
+        Place()
+    end
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:SetScript("OnClick", function(_, mouse)
+        onClick(mouse)
+    end)
+    button:RegisterForDrag("LeftButton")
+    button:SetScript("OnDragStart", function(self)
+        local tooltip = rawget(_G, "GameTooltip")
+        if tooltip then
+            tooltip:Hide()
+        end
+        self:SetScript("OnUpdate", function()
+            local mx, my = minimap:GetCenter()
+            local scale = minimap:GetEffectiveScale()
+            local cx, cy = GetCursorPosition()
+            mx, my, scale, cx, cy = K.Num(mx), K.Num(my), K.Num(scale), K.Num(cx), K.Num(cy)
+            if mx and my and scale and scale > 0 and cx and cy then
+                settings.angle = math.deg(Angle(cy / scale - my, cx / scale - mx))
+                Place()
+            end
+        end)
+    end)
+    button:SetScript("OnDragStop", function(self)
+        self:SetScript("OnUpdate", nil)
+    end)
+    button:SetScript("OnEnter", function(self)
+        local tooltip = rawget(_G, "GameTooltip")
+        if tooltip then
+            tooltip:SetOwner(self, "ANCHOR_LEFT")
+            tooltip:SetText(K.title)
+            for _, line in ipairs(lines or {}) do
+                tooltip:AddLine(line, 1, 1, 1)
+            end
+            tooltip:Show()
+        end
+    end)
+    button:SetScript("OnLeave", function()
+        local tooltip = rawget(_G, "GameTooltip")
+        if tooltip then
+            tooltip:Hide()
+        end
+    end)
+    button:Apply()
+    return button
+end
+
+------------------------------------------------------------------------------
 -- The settings window
 ------------------------------------------------------------------------------
 

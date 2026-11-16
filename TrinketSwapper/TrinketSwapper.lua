@@ -29,7 +29,9 @@ local GAP = 4
 local MENU_TALL = 4          -- trinkets to a column before the next one starts
 local SWAP_COOLDOWN = 30     -- the cooldown wearing a trinket starts
 local EMPTY = "Interface\\PaperDoll\\UI-PaperDoll-Slot-Trinket"
-local DEFAULTS = { size = 36, tray = true, swap = true, keys = true, below = false, durations = {} }
+local DEFAULTS = { size = 36, tray = true, swap = true, keys = true, below = false, durations = {},
+    minimap = { angle = 205, hide = false } }
+local ICON = "Interface\\AddOns\\TrinketSwapper\\Media\\TrinketSwapper"
 local SPOT = { "CENTER", "CENTER", 0, -220 }
 
 _G.BINDING_HEADER_TRINKETSWAPPER = "TrinketSwapper"
@@ -37,7 +39,7 @@ _G["BINDING_NAME_CLICK TrinketSwapperSlot13:LeftButton"] = "Use top trinket"
 _G["BINDING_NAME_CLICK TrinketSwapperSlot14:LeftButton"] = "Use bottom trinket"
 
 local db
-local bar, flyout, dragBox
+local bar, flyout, dragBox, minimapButton
 local slots = {}             -- slot -> its icon (a secure button)
 local seenCooldowns = {}     -- item -> { start, duration }, as last read
 local queued = {}            -- slot -> { itemID, icon, link }
@@ -621,15 +623,49 @@ function ns.Move(on)
 end
 
 function ns.Reset()
-    local durations = db.durations
+    -- (What it has learned of cooldowns stays; the minimap table is the one
+    -- the minimap button holds on to, so it's put back in place.)
+    local durations, minimap = db.durations, db.minimap
     for key in pairs(db) do
         db[key] = nil
     end
     for key, value in pairs(DEFAULTS) do
-        db[key] = value
+        if type(value) ~= "table" then
+            db[key] = value
+        end
     end
     db.durations = durations or {}
+    db.minimap = minimap or {}
+    for key, value in pairs(DEFAULTS.minimap) do
+        db.minimap[key] = value
+    end
     Layout()
+    ns.ApplyMinimapButton()
+end
+
+function ns.ApplyMinimapButton()
+    if minimapButton then
+        minimapButton:Apply()
+    end
+end
+
+local function BuildMinimapButton()
+    if minimapButton or not db then
+        return
+    end
+    minimapButton = K.MinimapButton("TrinketSwapperMinimapButton", ICON, db.minimap, function(mouse)
+        if mouse == "RightButton" then
+            if InCombat() or not bar then
+                K.Print("not in combat.")
+            elseif ns.Move() then
+                K.Print("drag the blue box over your trinkets; right-click the minimap button again when it's where you want it.")
+            else
+                K.Print("locked in place.")
+            end
+        else
+            ns.ToggleOptions()
+        end
+    end, { "Click: settings", "Right-click: move the trinket icons", "Drag: move this button" })
 end
 
 K.On("ADDON_LOADED", function(name)
@@ -644,7 +680,10 @@ K.On("ADDON_LOADED", function(name)
     end
 end)
 
-K.On("PLAYER_LOGIN", Build)
+K.On("PLAYER_LOGIN", function()
+    Build()
+    BuildMinimapButton()
+end)
 K.On("PLAYER_ENTERING_WORLD", function()
     Build()
     Soon()
@@ -719,8 +758,12 @@ SlashCmdList["TRINKETSWAPPER"] = function(message)
             ns.Reset()
             K.Print("settings and position are back to how they came.")
         end
+    elseif command == "minimap" then
+        db.minimap.hide = not db.minimap.hide
+        ns.ApplyMinimapButton()
+        K.Print(db.minimap.hide and "minimap button hidden; /ts minimap brings it back." or "minimap button shown.")
     elseif command == "help" or command == "?" then
-        K.Print("/ts: settings. /ts move: move the icons. /ts reset: start over. Keys: Key Bindings > TrinketSwapper.")
+        K.Print("/ts: settings. /ts move: move the icons. /ts minimap: show or hide the minimap button. /ts reset: start over. Keys: Key Bindings > TrinketSwapper.")
     else
         ns.ToggleOptions()
     end
@@ -734,4 +777,5 @@ ns.internals = {
     BagTrinkets = BagTrinkets,
     DragBox = function() return dragBox end,
     Pending = function() return pendingLayout end,
+    MinimapButton = function() return minimapButton end,
 }
