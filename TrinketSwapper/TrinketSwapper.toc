@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: TrinketSwapper
+## Notes: Your two trinkets as icons with a hover menu for swapping them; swaps asked for in combat go on when the fight ends.
+## Author: elips
+## Version: 1.0.0
+## Category: Combat
+## SavedVariables: TrinketSwapperDB
+
+Kit.lua
+TrinketSwapper.lua
+Options.lua

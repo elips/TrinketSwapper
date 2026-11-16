@@ -1,0 +1,6 @@
+<Bindings>
+	<!-- Keys for using each trinket slot, set under Key Bindings > TrinketSwapper.
+	     Each presses that slot's icon, which runs /use on the slot. -->
+	<Binding name="CLICK TrinketSwapperSlot13:LeftButton" category="TrinketSwapper"/>
+	<Binding name="CLICK TrinketSwapperSlot14:LeftButton" category="TrinketSwapper"/>
+</Bindings>
