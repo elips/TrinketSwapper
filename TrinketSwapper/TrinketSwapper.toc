@@ -1,12 +1,13 @@
 ## Interface: 16001
 ## Title: TrinketSwapper
-## Notes: Your two trinkets as icons with a hover menu for swapping them; swaps asked for in combat go on when the fight ends.
+## Notes: Your two trinkets as icons that light while their buff is up, with a hover menu for swapping them; swaps asked for in combat go on when the fight ends.
 ## Author: elips
-## Version: 1.1.0
+## Version: 1.5.0
 ## Category: Combat
 ## IconTexture: Interface\AddOns\TrinketSwapper\Media\TrinketSwapper
 ## SavedVariables: TrinketSwapperDB
 
 Kit.lua
+Look.lua
 TrinketSwapper.lua
 Options.lua

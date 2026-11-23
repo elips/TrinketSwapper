@@ -14,7 +14,7 @@ end
 
 local function Build()
     local db = ns.db
-    window = K.Window("TrinketSwapperOptions", "TrinketSwapper", 430, 380)
+    window = K.Window("TrinketSwapperOptions", "TrinketSwapper", 430, 428)
     local x, y = 16, -42
     y = K.Para(window, "Put the mouse on a trinket icon to see the trinkets in your bags. Left-click one to wear it as your top trinket, right-click as your bottom trinket. In combat it's queued and goes on when the fight ends. Click an icon to use that trinket.", x, y, 396)
     K.Stepper(window, "Icon size", x, y,
@@ -36,6 +36,21 @@ local function Build()
         function(checked) db.swap = checked Apply() end,
         "Wearing a trinket starts a 30 second cooldown on it. \"Swap\" shows on a worn trinket that has longer than that left, when a bag trinket is ready to take its place.")
     y = y - 24
+    K.Check(window, "And show \"Swap\" in the middle of the screen", x + 18, y,
+        function() return db.alert ~= false end,
+        function(checked) db.alert = checked end,
+        "With \"Swap\" on the icon, the trinket's icon with \"Swap\" under it also shows in the middle of the screen for 10 seconds, once per cooldown, out of combat. Move it with the Move button; /ts swap shows it.")
+    y = y - 24
+    K.Check(window, "Light the icon while the trinket's buff is on you", x, y,
+        function() return db.buffs ~= false end,
+        function(checked)
+            db.buffs = checked
+            if not ns.ApplyBuffs() then
+                K.Print("that changes when the fight ends.")
+            end
+        end,
+        "The buff from using a trinket, or from its proc, shows on its icon in a green edge with its time sweeping away. A proc trinket whose buff is known waits grey for it. /ts buffs says what it knows of each.")
+    y = y - 24
     K.Check(window, "Show each trinket's key on its icon", x, y,
         function() return db.keys ~= false end,
         function(checked) db.keys = checked Apply() end)
@@ -51,7 +66,7 @@ local function Build()
         if not ns.Move() and K.inCombat then
             K.Print("not in combat.")
         end
-    end, "A blue box over the icons: drag it, then click Move again.")
+    end, "Blue boxes over the icons and where the swap alert shows: drag them, then click Move again.")
     K.Button(window, "Reset", 80, x + 90, y, function()
         if K.inCombat then
             K.Print("not in combat.")
