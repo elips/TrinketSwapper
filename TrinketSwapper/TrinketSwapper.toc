@@ -2,7 +2,7 @@
 ## Title: TrinketSwapper
 ## Notes: Your two trinkets as icons that light while their buff is up, with a hover menu for swapping them; swaps asked for in combat go on when the fight ends.
 ## Author: elips
-## Version: 1.5.0
+## Version: 1.5.1
 ## Category: Combat
 ## IconTexture: Interface\AddOns\TrinketSwapper\Media\TrinketSwapper
 ## SavedVariables: TrinketSwapperDB
