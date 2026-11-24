@@ -26,11 +26,12 @@ K.color = "ffe6b450"
 
 local TOP, BOTTOM = 13, 14
 local SLOTS = { TOP, BOTTOM }
-local GAP = 4
+local GAP = 4                 -- the space between icons as it comes (a setting: db.gap)
+local GAP_MIN, GAP_MAX = -12, 24
 local MENU_TALL = 4          -- trinkets to a column before the next one starts
 local SWAP_COOLDOWN = 30     -- the cooldown wearing a trinket starts
 local EMPTY = "Interface\\PaperDoll\\UI-PaperDoll-Slot-Trinket"
-local DEFAULTS = { size = 36, tray = true, swap = true, alert = true, keys = true, below = false, buffs = true, durations = {},
+local DEFAULTS = { size = 36, gap = GAP, tray = true, swap = true, alert = true, keys = true, below = false, buffs = true, durations = {},
     learned = {}, minimap = { angle = 205, hide = false } }
 local ICON = "Interface\\AddOns\\TrinketSwapper\\Media\\TrinketSwapper"
 local SPOT = { "CENTER", "CENTER", 0, -220 }
@@ -727,6 +728,15 @@ Update = function()
     end
 end
 
+-- The space between icons. (The action-button frame around each icon has a
+-- soft margin that grows with the icon, so big icons look further apart:
+-- the setting goes below zero to pull them together.)
+local function Gap()
+    local gap = tonumber(db and db.gap) or GAP
+    return math.max(GAP_MIN, math.min(GAP_MAX, gap))
+end
+ns.GAP_MIN, ns.GAP_MAX = GAP_MIN, GAP_MAX
+
 -- Sizes and places everything. The icons are secure buttons (they use the
 -- trinket), which the game won't let an addon move or size in combat: then
 -- it waits for the fight to end.
@@ -740,13 +750,14 @@ local function Layout()
     end
     pendingLayout = false
     local size = tonumber(db.size) or DEFAULTS.size
-    bar:SetSize(size * 2 + GAP, size)
+    local gap = Gap()
+    bar:SetSize(size * 2 + gap, size)
     K.Place(bar, db.pos, SPOT)
     for index, slot in ipairs(SLOTS) do
         local button = slots[slot]
         button:SetSize(size, size)
         button:ClearAllPoints()
-        button:SetPoint("LEFT", bar, "LEFT", (index - 1) * (size + GAP), 0)
+        button:SetPoint("LEFT", bar, "LEFT", (index - 1) * (size + gap), 0)
         Look.Size(button, size)
         button.queuedFrame:SetSize(size * 0.45, size * 0.45)
         Look.Size(button.queuedFrame, size * 0.45)
@@ -992,16 +1003,18 @@ local function Fill(list, mode)
         BuildFlyout()
     end
     local size = tonumber(db.size) or DEFAULTS.size
-    local step = size + GAP
+    local gap = Gap()
+    local step = size + gap
+    local away = math.max(0, gap)      -- the menu never laps over the icons
     local columns = math.max(1, math.ceil(#list / MENU_TALL))
     local rows = math.ceil(#list / columns)
     local below = db.below == true
-    flyout:SetSize(columns * step - GAP, rows * step - GAP)
+    flyout:SetSize(columns * step - gap, rows * step - gap)
     flyout:ClearAllPoints()
     if below then
-        flyout:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP)
+        flyout:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -away)
     else
-        flyout:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", 0, GAP)
+        flyout:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", 0, away)
     end
     for index, item in ipairs(list) do
         local button = MenuButton(index)

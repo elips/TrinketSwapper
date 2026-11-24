@@ -25,7 +25,7 @@ A small addon for **WoW: Forever** that puts your two trinkets on screen as a pa
 
 ## Settings
 
-- Icon size.
+- Icon size, and the space between the icons (below zero pulls big icons together).
 - Whether the menu opens above or below the icons.
 - The cooldown tray, the "Swap" label, the swap alert in the middle of the screen, the buff on the icon, the key shown on each icon and the minimap button can each be switched off.
 

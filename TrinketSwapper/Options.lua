@@ -14,12 +14,17 @@ end
 
 local function Build()
     local db = ns.db
-    window = K.Window("TrinketSwapperOptions", "TrinketSwapper", 430, 428)
+    window = K.Window("TrinketSwapperOptions", "TrinketSwapper", 430, 454)
     local x, y = 16, -42
     y = K.Para(window, "Put the mouse on a trinket icon to see the trinkets in your bags. Left-click one to wear it as your top trinket, right-click as your bottom trinket. In combat it's queued and goes on when the fight ends. Click an icon to use that trinket.", x, y, 396)
     K.Stepper(window, "Icon size", x, y,
         function() return tonumber(db.size) or 36 end,
         function(value) db.size = value Apply() end, 2, 20, 72)
+    y = y - 26
+    K.Stepper(window, "Space between icons", x, y,
+        function() return tonumber(db.gap) or 4 end,
+        function(value) db.gap = value Apply() end, 1, ns.GAP_MIN, ns.GAP_MAX, nil,
+        "How far apart the icons sit, here and in the menu. Bigger icons look further apart (the frame around each has a soft margin that grows with it): go below zero to pull them together.")
     y = y - 30
     K.Check(window, "Open the menu below the icons", x, y,
         function() return db.below == true end,
