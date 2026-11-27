@@ -536,6 +536,131 @@ local function Tint(region, color, alpha)
 end
 
 ------------------------------------------------------------------------------
+-- The class HUD's theme (through ElipsUI)
+------------------------------------------------------------------------------
+-- With ElipsUI installed and a class HUD (ArchDruid, WarLord) wearing a
+-- theme, the guild's addons wear it too: a soft glow of its main color
+-- along the top of their panels and windows (ElipsUI's "Gloss on panels"
+-- decides whether), and its color on what's lit, selected or ticked. It
+-- follows the theme as it changes. Without ElipsUI or a HUD: the bronze
+-- look, as it always was.
+
+local function Suite()
+    local suite = rawget(_G, "ElipsUI")
+    return type(suite) == "table" and suite or nil
+end
+
+local function Color(color)
+    if type(color) == "table" and K.Num(color[1]) and K.Num(color[2]) and K.Num(color[3]) then
+        return color
+    end
+    return nil
+end
+
+-- The HUD's theme color ({ r, g, b }), or nil.
+function K.ThemeColor()
+    local suite = Suite()
+    if suite and type(suite.Theme) == "function" then
+        local ok, theme = pcall(suite.Theme)
+        if ok and type(theme) == "table" then
+            return Color(theme.main)
+        end
+    end
+    return nil
+end
+
+-- The gloss color ({ r, g, b }), or nil for none.
+function K.GlossColor()
+    local suite = Suite()
+    if suite and type(suite.GlossColor) == "function" then
+        local ok, color = pcall(suite.GlossColor)
+        if ok then
+            return Color(color)
+        end
+    end
+    return nil
+end
+
+-- What's lit, selected or ticked: the theme's color, or bronze.
+function K.Accent()
+    return K.ThemeColor() or K.EDGE_LIT
+end
+
+local glosses = setmetatable({}, { __mode = "k" })    -- texture -> strength
+local accents = setmetatable({}, { __mode = "k" })    -- slice -> its alpha
+local repaints = {}
+
+local function PaintGloss(texture, strength)
+    local color = K.GlossColor()
+    if color then
+        texture:SetColorTexture(1, 1, 1, 1)
+        local createColor = rawget(_G, "CreateColor")
+        local done = texture.SetGradient and createColor and pcall(texture.SetGradient, texture, "VERTICAL",
+            createColor(color[1], color[2], color[3], 0), createColor(color[1], color[2], color[3], strength))
+        if not done then
+            texture:SetColorTexture(color[1], color[2], color[3], strength * 0.45)
+        end
+    end
+    texture:SetShown(color ~= nil)
+end
+
+-- Puts the theme's glow along the top of `frame` (a rounded panel): `inset`
+-- from its edge, `height` tall. Returns the texture.
+function K.Gloss(frame, inset, height, strength)
+    inset = inset or 3
+    local texture = frame:CreateTexture(nil, "BACKGROUND", nil, 2)
+    texture:SetPoint("TOPLEFT", inset, -inset)
+    texture:SetPoint("TOPRIGHT", -inset, -inset)
+    texture:SetHeight(height or 30)
+    glosses[texture] = strength or 0.22
+    PaintGloss(texture, glosses[texture])
+    return texture
+end
+
+-- A slice (K.RoundedFill) in the accent color, kept in it.
+function K.AccentFill(slice, alpha)
+    accents[slice] = alpha or 1
+    local color = K.Accent()
+    slice:SetColor(color[1], color[2], color[3], accents[slice])
+    return slice
+end
+
+-- `fn()` is called whenever the theme changes.
+function K.OnTheme(fn)
+    repaints[#repaints + 1] = fn
+end
+
+K.themeStats = { repaints = 0, hooked = false }
+function K.Retheme()
+    K.themeStats.repaints = K.themeStats.repaints + 1
+    for texture, strength in pairs(glosses) do
+        PaintGloss(texture, strength)
+    end
+    local color = K.Accent()
+    for slice, alpha in pairs(accents) do
+        slice:SetColor(color[1], color[2], color[3], alpha)
+    end
+    for _, fn in ipairs(repaints) do
+        pcall(fn)
+    end
+end
+
+-- ElipsUI is listened to once everything has loaded.
+K.On("PLAYER_LOGIN", function()
+    local suite = Suite()
+    if suite and not K.themeStats.hooked then
+        K.themeStats.hooked = true
+        if type(suite.OnTheme) == "function" then
+            pcall(suite.OnTheme, K.Retheme)
+        end
+        if type(suite.OnGloss) == "function" then
+            pcall(suite.OnGloss, K.Retheme)
+        end
+    end
+    K.Retheme()
+end)
+
+------------------------------------------------------------------------------
 -- The settings window
 ------------------------------------------------------------------------------
 
@@ -571,8 +696,7 @@ local function SmallButton(parent, text, width)
     local look = K.Rounded(button, 6)
     look:Fill(K.WELL[1], K.WELL[2], K.WELL[3], 1)
     look:Edge(K.EDGE_DIM[1], K.EDGE_DIM[2], K.EDGE_DIM[3], 1)
-    local hover = K.RoundedFill(button, 6, "HIGHLIGHT")
-    hover:SetColor(K.EDGE_LIT[1], K.EDGE_LIT[2], K.EDGE_LIT[3], 0.16)
+    local hover = K.AccentFill(K.RoundedFill(button, 6, "HIGHLIGHT"), 0.16)
     local label = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("CENTER")
     label:SetText(text)
@@ -580,11 +704,16 @@ local function SmallButton(parent, text, width)
     button.label, button.look, button.hover = label, look, hover
     function button:SetSelected(selected)
         self.selected = selected and true or false
-        local edge, fill = selected and K.EDGE_LIT or K.EDGE_DIM, selected and 1.5 or 1
+        local edge, fill = selected and K.Accent() or K.EDGE_DIM, selected and 1.5 or 1
         self.look:Edge(edge[1], edge[2], edge[3], 1)
         self.look:Fill(K.WELL[1] * fill, K.WELL[2] * fill, K.WELL[3] * fill, 1)
         Tint(self.label, selected and K.GOLD or K.TEXT)
     end
+    K.OnTheme(function()
+        if button.selected then
+            button:SetSelected(true)
+        end
+    end)
     button:SetScript("OnMouseDown", function(self) self.label:SetPoint("CENTER", 0, -1) end)
     button:SetScript("OnMouseUp", function(self) self.label:SetPoint("CENTER", 0, 0) end)
     return button
@@ -605,6 +734,7 @@ function K.Window(name, title, width, height)
     window:SetScript("OnDragStart", window.StartMoving)
     window:SetScript("OnDragStop", window.StopMovingOrSizing)
     K.Rounded(window, 9)
+    window.gloss = K.Gloss(window, 3, 30)
     local heading = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     heading:SetPoint("TOPLEFT", 16, -12)
     heading:SetText(title)
@@ -619,8 +749,7 @@ function K.Window(name, title, width, height)
     local close = CreateFrame("Button", nil, window)
     close:SetSize(20, 20)
     close:SetPoint("TOPRIGHT", -8, -8)
-    local closeHover = K.RoundedFill(close, 6, "HIGHLIGHT")
-    closeHover:SetColor(K.EDGE_LIT[1], K.EDGE_LIT[2], K.EDGE_LIT[3], 0.22)
+    K.AccentFill(K.RoundedFill(close, 6, "HIGHLIGHT"), 0.22)
     local cross = close:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     cross:SetPoint("CENTER", 0, 1)
     cross:SetText("x")
@@ -676,13 +805,13 @@ function K.Check(window, text, x, y, get, set, tip)
     local look = K.Rounded(check, 5, 1)
     look:Fill(0.045, 0.039, 0.032, 1)
     look:Edge(K.EDGE_DIM[1], K.EDGE_DIM[2], K.EDGE_DIM[3], 1)
-    local hover = K.RoundedFill(check, 5, "HIGHLIGHT", 1)
-    hover:SetColor(K.EDGE_LIT[1], K.EDGE_LIT[2], K.EDGE_LIT[3], 0.18)
-    -- The tick: a small rounded block of antique gold.
+    K.AccentFill(K.RoundedFill(check, 5, "HIGHLIGHT", 1), 0.18)
+    -- The tick: a small rounded block of antique gold (the theme's color
+    -- with a class HUD's theme).
     local tick = CreateFrame("Frame", nil, check)
     tick:SetPoint("TOPLEFT", 5, -5)
     tick:SetPoint("BOTTOMRIGHT", -5, 5)
-    K.RoundedFill(tick, 3, "ARTWORK"):SetColor(K.EDGE_LIT[1], K.EDGE_LIT[2], K.EDGE_LIT[3], 1)
+    K.AccentFill(K.RoundedFill(tick, 3, "ARTWORK"), 1)
     local label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     label:SetPoint("LEFT", check, "RIGHT", 6, 0)
     label:SetText(text)

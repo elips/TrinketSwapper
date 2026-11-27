@@ -2,6 +2,8 @@
 
 A small addon for **WoW: Forever** that puts your two trinkets on screen as a pair of icons, with a menu for swapping them. Works for every class.
 
+With ElipsUI installed and a class HUD (ArchDruid, WarLord) wearing a theme, the settings window wears it too: a soft glow of its color along the top, and its color on what's lit, selected or ticked in the settings. Without them, the bronze look.
+
 ## What it does
 
 - **Two icons**, one for each trinket slot, each showing its trinket and its cooldown, in the look of your action buttons (the art is copied from them, so it matches). Click an icon to use that trinket, or give each a key (Key Bindings > TrinketSwapper).
@@ -41,4 +43,4 @@ The trinket icons used to be part of ArchDruid's HUD. The first time TrinketSwap
 
 ## Install
 
-On this page click **Code**, then **Download ZIP**, and open the ZIP. Inside its `TrinketSwapper-main` folder is a folder named `TrinketSwapper`: put that inner folder in `World of Warcraft\_forever_\Interface\AddOns\` and restart the game.
+Put the `TrinketSwapper` folder in `World of Warcraft\_forever_\Interface\AddOns\` and restart the game.
